@@ -116,9 +116,9 @@ fn main() {
     };
 
     let (_stream, stream_handle) = match config.use_default {
-        true => OutputStream::try_default().unwrap(),
+        true => OutputStream::try_default().expect("Couldn't open a default device"),
         false => {
-            let device = cpal::host_from_id(
+            let host = cpal::host_from_id(
                 match config
                     .device_config
                     .host
@@ -133,8 +133,15 @@ fn main() {
                     }
                 },
             )
-            .unwrap()
-            .output_devices()
+            .unwrap();
+
+            for device in host.output_devices().unwrap() {
+                info!("Device found: {}", device.name().unwrap());
+            }
+
+            info!("Finished searching");
+
+            let device = host.output_devices()
             .unwrap()
             .find(|device| {
                 device.name().unwrap()
