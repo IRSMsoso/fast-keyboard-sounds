@@ -4,18 +4,21 @@ use std::io::BufReader;
 use std::path::Path;
 use std::sync::{Arc, Mutex};
 
-use cpal::{SampleFormat, SupportedBufferSize, SupportedStreamConfig};
-use cpal::HostId::{Asio, Wasapi};
 use cpal::traits::{DeviceTrait, HostTrait};
+#[cfg(target_os = "macos")]
+use cpal::HostId::CoreAudio;
+#[cfg(target_os = "windows")]
+use cpal::HostId::{Asio, Wasapi};
+use cpal::{SampleFormat, SupportedBufferSize, SupportedStreamConfig};
 use glob::glob;
 use log::{debug, error, info, warn};
 use rand::prelude::SliceRandom;
 use rand::thread_rng;
-use rdev::{EventType, Key, listen};
 use rdev::EventType::KeyPress;
-use rodio::{cpal, Decoder, OutputStream, Source};
+use rdev::{listen, EventType, Key};
 use rodio::cpal::{BufferSize, SampleRate, StreamConfig};
 use rodio::source::Buffered;
+use rodio::{cpal, Decoder, OutputStream, Source};
 use serde::{Deserialize, Serialize};
 
 struct ListenState {
@@ -126,8 +129,12 @@ fn main() {
                     .to_lowercase()
                     .as_str()
                 {
+                    #[cfg(target_os = "windows")]
                     "asio" => Asio,
+                    #[cfg(target_os = "windows")]
                     "wasapi" => Wasapi,
+                    #[cfg(target_os = "macos")]
+                    "coreaudio" => CoreAudio,
                     _ => {
                         panic!("Invalid host");
                     }
@@ -138,20 +145,21 @@ fn main() {
             for device in host.output_devices().unwrap() {
                 info!("Device found: {}", device.name().unwrap());
             }
-
+            
             info!("Finished searching");
 
-            let device = host.output_devices()
-            .unwrap()
-            .find(|device| {
-                device.name().unwrap()
-                    == config
-                        .device_config
-                        .device_name
-                        .clone()
-                        .expect("Device name not specified")
-            })
-            .expect("Couldn't find device");
+            let device = host
+                .output_devices()
+                .unwrap()
+                .find(|device| {
+                    device.name().unwrap()
+                        == config
+                            .device_config
+                            .device_name
+                            .clone()
+                            .expect("Device name not specified")
+                })
+                .expect("Couldn't find device");
 
             let buffer_size = config
                 .device_config
