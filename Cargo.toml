@@ -1,6 +1,6 @@
 [package]
 name = "fast-keyboard-sounds"
-version = "0.1.0"
+version = "0.2.0"
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
@@ -12,7 +12,7 @@ glob = "0.3.1"
 rand = "0.8.5"
 stderrlog = "0.6.0"
 log = "0.4.21"
-cpal = { version = "0.15.2", features = ["asio"] }
+cpal = { version = "0.15.2", features = ["asio", "jack"] }
 serde_json = "1.0.114"
 serde = { version = "1.0.197", features = ["derive"] }
 

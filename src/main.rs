@@ -4,22 +4,30 @@ use std::io::BufReader;
 use std::path::Path;
 use std::sync::{Arc, Mutex};
 
-use cpal::traits::{DeviceTrait, HostTrait};
-#[cfg(target_os = "macos")]
-use cpal::HostId::CoreAudio;
+use cpal::{SampleFormat, SupportedBufferSize, SupportedStreamConfig};
 #[cfg(target_os = "windows")]
 use cpal::HostId::{Asio, Wasapi};
-use cpal::{SampleFormat, SupportedBufferSize, SupportedStreamConfig};
+#[cfg(target_os = "linux")]
+use cpal::HostId::Alsa;
+#[cfg(target_os = "macos")]
+use cpal::HostId::CoreAudio;
+#[cfg(target_os = "linux")]
+use cpal::HostId::Jack;
+use cpal::traits::{DeviceTrait, HostTrait};
 use glob::glob;
 use log::{debug, error, info, warn};
 use rand::prelude::SliceRandom;
 use rand::thread_rng;
+use rdev::{EventType, Key, listen};
 use rdev::EventType::KeyPress;
-use rdev::{listen, EventType, Key};
+use rodio::{cpal, Decoder, OutputStream, Source};
 use rodio::cpal::{BufferSize, SampleRate, StreamConfig};
 use rodio::source::Buffered;
-use rodio::{cpal, Decoder, OutputStream, Source};
 use serde::{Deserialize, Serialize};
+
+use crate::config::Config;
+
+mod config;
 
 struct ListenState {
     key_states: HashMap<Key, bool>,
@@ -56,38 +64,6 @@ fn get_buffered_sounds_from_directory(directory: &str) -> Vec<Buffered<Decoder<B
     }
 
     sounds
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-struct DeviceConfig {
-    host: Option<String>,
-    device_name: Option<String>,
-    num_channels: Option<u16>,
-    sample_rate: Option<u32>,
-    buffer_size: Option<u32>,
-    format: Option<String>,
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-struct Config {
-    use_default: bool,
-    device_config: DeviceConfig,
-}
-
-impl Config {
-    fn default_config() -> Self {
-        Self {
-            use_default: true,
-            device_config: DeviceConfig {
-                host: None,
-                device_name: None,
-                num_channels: None,
-                sample_rate: None,
-                buffer_size: None,
-                format: None,
-            },
-        }
-    }
 }
 
 fn main() {
@@ -135,6 +111,10 @@ fn main() {
                     "wasapi" => Wasapi,
                     #[cfg(target_os = "macos")]
                     "coreaudio" => CoreAudio,
+                    #[cfg(target_os = "linux")]
+                    "alsa" => Alsa,
+                    #[cfg(target_os = "linux")]
+                    "jack" => Jack,
                     _ => {
                         panic!("Invalid host");
                     }
@@ -145,7 +125,7 @@ fn main() {
             for device in host.output_devices().unwrap() {
                 info!("Device found: {}", device.name().unwrap());
             }
-            
+
             info!("Finished searching");
 
             let device = host
