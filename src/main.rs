@@ -16,8 +16,8 @@ use cpal::HostId::Jack;
 use cpal::traits::{DeviceTrait, HostTrait};
 use glob::glob;
 use log::{debug, error, info, warn};
-use rand::prelude::SliceRandom;
-use rand::thread_rng;
+use rand::prelude::{IndexedRandom, SliceRandom};
+use rand::rng;
 use rdev::{EventType, Key, listen};
 use rdev::EventType::KeyPress;
 use rodio::{cpal, Decoder, OutputStream, Source};
@@ -226,7 +226,7 @@ fn main() {
             KeyPress(key) => match listen_state_lock.key_states.get_mut(&key) {
                 Some(key_is_pressed) => {
                     if !*key_is_pressed {
-                        let sound = key_down_sounds.choose(&mut thread_rng()).unwrap();
+                        let sound = key_down_sounds.choose(&mut rng()).unwrap();
                         stream_handle
                             .play_raw(sound.clone().convert_samples())
                             .unwrap();
@@ -235,7 +235,7 @@ fn main() {
                     }
                 }
                 None => {
-                    let sound = key_down_sounds.choose(&mut thread_rng()).unwrap();
+                    let sound = key_down_sounds.choose(&mut rng()).unwrap();
                     stream_handle
                         .play_raw(sound.clone().convert_samples())
                         .unwrap();
@@ -246,7 +246,7 @@ fn main() {
             EventType::KeyRelease(key) => match listen_state_lock.key_states.get_mut(&key) {
                 Some(key_is_pressed) => {
                     if *key_is_pressed {
-                        let sound = key_up_sounds.choose(&mut thread_rng()).unwrap();
+                        let sound = key_up_sounds.choose(&mut rng()).unwrap();
                         stream_handle
                             .play_raw(sound.clone().convert_samples())
                             .unwrap();
@@ -255,7 +255,7 @@ fn main() {
                     }
                 }
                 None => {
-                    let sound = key_up_sounds.choose(&mut thread_rng()).unwrap();
+                    let sound = key_up_sounds.choose(&mut rng()).unwrap();
                     stream_handle
                         .play_raw(sound.clone().convert_samples())
                         .unwrap();
@@ -264,13 +264,13 @@ fn main() {
                 }
             },
             EventType::ButtonPress(button) => {
-                let sound = mouse_down_sounds.choose(&mut thread_rng()).unwrap();
+                let sound = mouse_down_sounds.choose(&mut rng()).unwrap();
                 stream_handle
                     .play_raw(sound.clone().convert_samples())
                     .unwrap();
             }
             EventType::ButtonRelease(button) => {
-                let sound = mouse_up_sounds.choose(&mut thread_rng()).unwrap();
+                let sound = mouse_up_sounds.choose(&mut rng()).unwrap();
                 stream_handle
                     .play_raw(sound.clone().convert_samples())
                     .unwrap();
